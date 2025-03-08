@@ -5,10 +5,12 @@ import (
 	"net"
 )
 
-// Ensures gofmt doesn't remove the "net" import in stage 1 (feel free to remove this!)
-var _ = net.ListenUDP
-
 func main() {
+	// create a new header
+	h := newHeader()
+	h.setID(1234)
+	h.setResponse()
+
 	udpAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:2053")
 	if err != nil {
 		fmt.Println("Failed to resolve UDP address:", err)
@@ -34,10 +36,8 @@ func main() {
 		receivedData := string(buf[:size])
 		fmt.Printf("Received %d bytes from %s: %s\n", size, source, receivedData)
 
-		// Create an empty response
-		response := []byte{}
-
-		_, err = udpConn.WriteToUDP(response, source)
+		// return only the header
+		_, err = udpConn.WriteToUDP(h, source)
 		if err != nil {
 			fmt.Println("Failed to send response:", err)
 		}
