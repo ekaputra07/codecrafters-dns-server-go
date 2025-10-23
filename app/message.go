@@ -5,6 +5,20 @@ import (
 	"fmt"
 )
 
+// Header format (12 bytes total):
+// +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+// | ID                                          | 2 bytes
+// +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+// | QR | OPCODE | AA | TC | RD | RA | Z | RCODE | 2 bytes
+// +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+// | QDCOUNT                                     | 2 bytes
+// +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+// | ANCOUNT                                     | 2 bytes
+// +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+// | NSCOUNT                                     | 2 bytes
+// +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+// | ARCOUNT                                     | 2 bytes
+// +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 type header []byte
 
 // setID sets the ID field of the header
@@ -64,22 +78,31 @@ func (h header) setRCODE(value uint8) {
 	h[3] |= mask
 }
 
+// setQDCOUNT sets the QDCOUNT field of the header
+// QDCOUNT is 16-bits long (2 bytes) starts at 5th byte (index 4)
 func (h header) setQDCOUNT(value uint16) {
 	binary.BigEndian.PutUint16(h[4:], value)
 }
 
+// setANCOUNT sets the ANCOUNT field of the header
+// ANCOUNT is 16-bits long (2 bytes) starts at 7th byte (index 6)
 func (h header) setANCOUNT(value uint16) {
 	binary.BigEndian.PutUint16(h[6:], value)
 }
 
+// setNSCOUNT sets the NSCOUNT field of the header
+// NSCOUNT is 16-bits long (2 bytes) starts at 9th byte (index 8)
 func (h header) setNSCOUNT(value uint16) {
 	binary.BigEndian.PutUint16(h[8:], value)
 }
 
+// setARCOUNT sets the ARCOUNT field of the header
+// ARCOUNT is 16-bits long (2 bytes) starts at 11th byte (index 10)
 func (h header) setARCOUNT(value uint16) {
 	binary.BigEndian.PutUint16(h[10:], value)
 }
 
+// String returns a binary string representation of the header
 func (h header) String() string {
 	return fmt.Sprintf("%08b", h)
 }
