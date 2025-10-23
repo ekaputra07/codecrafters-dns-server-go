@@ -1,7 +1,9 @@
 package message
 
+import "fmt"
+
 func NewMessage() []byte {
-	m := make([]byte, 512)
+	var m []byte
 
 	header := newHeader()
 	header.setID(1234)
@@ -12,5 +14,8 @@ func NewMessage() []byte {
 
 	m = append(m, header...)
 	m = append(m, question...)
+	m = append(m, make([]byte, 512-33)...)
+	fmt.Println(m)
+	fmt.Println(len(m))
 	return m
 }
