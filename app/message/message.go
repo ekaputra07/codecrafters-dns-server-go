@@ -1,7 +1,7 @@
 package message
 
 func NewMessage() []byte {
-	var m []byte
+	m := make([]byte, 512)
 
 	header := newHeader()
 	header.setID(1234)
