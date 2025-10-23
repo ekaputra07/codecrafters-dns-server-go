@@ -5,16 +5,15 @@ import (
 	"strings"
 )
 
-func newQuestion(qname string, qtype, qclass uint16) (q []byte, count uint16) {
+func newQuestion(qname string, qtype, qclass uint16) []byte {
+	var q []byte
 
 	// append labels
 	parts := strings.SplitSeq(qname, ".")
-	count = 0
 
 	for part := range parts {
 		q = append(q, byte(len(part)))
 		q = append(q, []byte(part)...)
-		count += 1
 	}
 
 	// end of labels
@@ -29,5 +28,5 @@ func newQuestion(qname string, qtype, qclass uint16) (q []byte, count uint16) {
 
 	q = append(q, typeBuf...)
 	q = append(q, classBuf...)
-	return
+	return q
 }

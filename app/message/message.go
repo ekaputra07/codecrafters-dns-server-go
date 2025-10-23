@@ -1,21 +1,16 @@
 package message
 
-import "fmt"
-
 func NewMessage() []byte {
 	var m []byte
 
 	header := newHeader()
 	header.setID(1234)
 	header.setResponse()
+	header.setQDCOUNT(1)
 
-	question, count := newQuestion("codecrafters.io", 1, 1)
-	header.setQDCOUNT(count)
+	question := newQuestion("codecrafters.io", 1, 1)
 
 	m = append(m, header...)
 	m = append(m, question...)
-	m = append(m, make([]byte, 512-33)...)
-	fmt.Println(m)
-	fmt.Println(len(m))
 	return m
 }
