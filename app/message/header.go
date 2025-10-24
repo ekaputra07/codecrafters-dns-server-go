@@ -2,7 +2,6 @@ package message
 
 import (
 	"encoding/binary"
-	"fmt"
 )
 
 // Header format (12 bytes total):
@@ -19,94 +18,87 @@ import (
 // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 // | ARCOUNT                                     | 2 bytes
 // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-type header []byte
-
-// setID sets the ID field of the header
-// ID is 16-bits long (2 bytes)
-func (h header) setID(value uint16) {
-	binary.BigEndian.PutUint16(h, value)
+type Header struct {
+	ID      uint16
+	OPCODE  *uint8
+	AA      bool
+	TC      bool
+	RD      bool
+	RA      bool
+	Z       *uint8
+	RCODE   *uint8
+	QDCOUNT *uint16
+	ANCOUNT *uint16
+	NSCOUNT *uint16
+	ARCOUNT *uint16
 }
 
-// setR sets the QR field of the header to Response
-// QR is 1-bit long, the most significant bit of the 3rd byte (index 2)
-func (h header) setResponse() {
-	h[2] |= 0b10000000
-}
+func (h Header) ToBytes() []byte {
+	bytes := make([]byte, 12)
 
-// setOPCODE sets the OPCODE field of the header
-// OPCODE is 4-bits long, starting from the 2nd bit of the 3rd byte (index 2)
-func (h header) setOPCODE(value uint8) {
-	mask := 0b00001111 & value
-	h[2] |= mask << 3
-}
+	// set ID
+	binary.BigEndian.PutUint16(bytes, h.ID)
 
-// setAA sets the AA field of the header
-// AA is 1-bit long, the 6th bit of the 3rd byte (index 2)
-func (h header) setAA() {
-	h[2] |= 0b00000100
-}
+	// QR: type always Response (R)
+	// QR is 1-bit long, the most significant bit of the 3rd byte (index 2)
+	bytes[2] |= 0b10000000
 
-// setTC sets the TC field of the header
-// TC is 1-bit long, the 7th bit of the 3rd byte (index 2)
-func (h header) setTC() {
-	h[2] |= 0b00000010
-}
+	// OPCODE is 4-bits long, starting from the 2nd bit of the 3rd byte (index 2)
+	if h.OPCODE != nil {
+		mask := 0b00001111 & *h.OPCODE
+		bytes[2] |= mask << 3
+	}
 
-// setRD sets the RD field of the header
-// RD is 1-bit long, the least significant bit of the 3rd byte (index 2)
-func (h header) setRD() {
-	h[2] |= 0b00000001
-}
+	// AA is 1-bit long, the 6th bit of the 3rd byte (index 2)
+	if h.AA {
+		bytes[2] |= 0b00000100
+	}
 
-// setRA sets the RA field of the header
-// RA is 1-bit long, the most significant bit of the 4th byte (index 3)
-func (h header) setRA() {
-	h[3] |= 0b10000000
-}
+	// TC is 1-bit long, the 7th bit of the 3rd byte (index 2)
+	if h.TC {
+		bytes[2] |= 0b00000010
+	}
 
-// setZ sets the Z field of the header
-// Z is 3-bits long, starting from the 2nd bit of the 4th byte (index 3)
-func (h header) setZ(value uint8) {
-	mask := 0b00000111 & value
-	h[3] |= mask << 4
-}
+	// RD is 1-bit long, the least significant bit of the 3rd byte (index 2)
+	if h.RD {
+		bytes[2] |= 0b00000001
+	}
 
-// setRCODE sets the RCODE field of the header
-// RCODE is 4-bits long, starting from the 5th bit of the 4th byte (index 3)
-func (h header) setRCODE(value uint8) {
-	mask := 0b00001111 & value
-	h[3] |= mask
-}
+	// RA is 1-bit long, the most significant bit of the 4th byte (index 3)
+	if h.RA {
+		bytes[3] |= 0b10000000
+	}
 
-// setQDCOUNT sets the QDCOUNT field of the header
-// QDCOUNT is 16-bits long (2 bytes) starts at 5th byte (index 4)
-func (h header) setQDCOUNT(value uint16) {
-	binary.BigEndian.PutUint16(h[4:], value)
-}
+	// Z is 3-bits long, starting from the 2nd bit of the 4th byte (index 3)
+	if h.Z != nil {
+		mask := 0b00000111 & *h.Z
+		bytes[3] |= mask << 4
+	}
 
-// setANCOUNT sets the ANCOUNT field of the header
-// ANCOUNT is 16-bits long (2 bytes) starts at 7th byte (index 6)
-func (h header) setANCOUNT(value uint16) {
-	binary.BigEndian.PutUint16(h[6:], value)
-}
+	// RCODE is 4-bits long, starting from the 5th bit of the 4th byte (index 3)
+	if h.RCODE != nil {
+		mask := 0b00001111 & *h.RCODE
+		bytes[3] |= mask
+	}
 
-// setNSCOUNT sets the NSCOUNT field of the header
-// NSCOUNT is 16-bits long (2 bytes) starts at 9th byte (index 8)
-func (h header) setNSCOUNT(value uint16) {
-	binary.BigEndian.PutUint16(h[8:], value)
-}
+	// QDCOUNT is 16-bits long (2 bytes) starts at 5th byte (index 4)
+	if h.QDCOUNT != nil {
+		binary.BigEndian.PutUint16(bytes[4:], *h.QDCOUNT)
+	}
 
-// setARCOUNT sets the ARCOUNT field of the header
-// ARCOUNT is 16-bits long (2 bytes) starts at 11th byte (index 10)
-func (h header) setARCOUNT(value uint16) {
-	binary.BigEndian.PutUint16(h[10:], value)
-}
+	// ANCOUNT is 16-bits long (2 bytes) starts at 7th byte (index 6)
+	if h.ANCOUNT != nil {
+		binary.BigEndian.PutUint16(bytes[6:], *h.ANCOUNT)
+	}
 
-// String returns a binary string representation of the header
-func (h header) String() string {
-	return fmt.Sprintf("%08b", h)
-}
+	// NSCOUNT is 16-bits long (2 bytes) starts at 9th byte (index 8)
+	if h.NSCOUNT != nil {
+		binary.BigEndian.PutUint16(bytes[8:], *h.NSCOUNT)
+	}
 
-func newHeader() header {
-	return make(header, 12)
+	// ARCOUNT is 16-bits long (2 bytes) starts at 11th byte (index 10)
+	if h.NSCOUNT != nil {
+		binary.BigEndian.PutUint16(bytes[10:], *h.NSCOUNT)
+	}
+	return bytes
 }

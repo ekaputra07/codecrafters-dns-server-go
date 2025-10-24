@@ -1,16 +1,31 @@
 package message
 
-func NewMessage() []byte {
-	var m []byte
+type Section interface {
+	ToBytes() []byte
+}
 
-	header := newHeader()
-	header.setID(1234)
-	header.setResponse()
-	header.setQDCOUNT(1)
+type Message struct {
+	Header   Section
+	Question Section
+	Answer   Section
+}
 
-	question := newQuestion("codecrafters.io", 1, 1)
+func (m Message) ToBytes() []byte {
+	bytes := m.Header.ToBytes()
+	bytes = append(bytes, m.Question.ToBytes()...)
+	bytes = append(bytes, m.Answer.ToBytes()...)
+	return bytes
+}
 
-	m = append(m, header...)
-	m = append(m, question...)
-	return m
+func NewMessage(ID int, qName string, qType, qClass uint16) []byte {
+	qdcount := uint16(1)
+	ancount := uint16(1)
+
+	message := Message{
+		Header:   Header{ID: uint16(ID), QDCOUNT: &qdcount, ANCOUNT: &ancount},
+		Question: Question{Name: qName, Type: qType, Class: qClass},
+		Answer:   Answer{Name: qName, Type: qType, Class: qClass, TTL: 60, Data: "8888"},
+	}
+
+	return message.ToBytes()
 }

@@ -5,28 +5,43 @@ import (
 	"strings"
 )
 
-func newQuestion(qname string, qtype, qclass uint16) []byte {
-	var q []byte
+// Answer format:
+// +--+--+--+--+--+
+// | Name         | vary in bytes
+// +--+--+--+--+--+
+// | Type         | 2 bytes
+// +--+--+--+--+--+
+// | Class        | 2 bytes
+// +--+--+--+--+--+
+
+type Question struct {
+	Name  string
+	Type  uint16
+	Class uint16
+}
+
+func (q Question) ToBytes() []byte {
+	var bytes []byte
 
 	// append labels
-	parts := strings.SplitSeq(qname, ".")
+	parts := strings.SplitSeq(q.Name, ".")
 
 	for part := range parts {
-		q = append(q, byte(len(part)))
-		q = append(q, []byte(part)...)
+		bytes = append(bytes, byte(len(part)))
+		bytes = append(bytes, []byte(part)...)
 	}
 
 	// end of labels
-	q = append(q, 0)
+	bytes = append(bytes, 0)
 
 	// append QTYPE and QCLASS
 	typeBuf := make([]byte, 2)
-	binary.BigEndian.PutUint16(typeBuf, qtype)
+	binary.BigEndian.PutUint16(typeBuf, q.Type)
 
 	classBuf := make([]byte, 2)
-	binary.BigEndian.PutUint16(classBuf, qclass)
+	binary.BigEndian.PutUint16(classBuf, q.Class)
 
-	q = append(q, typeBuf...)
-	q = append(q, classBuf...)
-	return q
+	bytes = append(bytes, typeBuf...)
+	bytes = append(bytes, classBuf...)
+	return bytes
 }
