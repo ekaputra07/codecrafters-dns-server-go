@@ -2,7 +2,6 @@ package message
 
 import (
 	"encoding/binary"
-	"fmt"
 	"strings"
 )
 
@@ -57,7 +56,6 @@ func ParseQuestion(bytes []byte) Question {
 		if len(b) == 0 {
 			break
 		}
-		fmt.Printf("name=%s, nextI=%v\n", b, nextStartIndex)
 		lastStartIndex = nextStartIndex
 		names = append(names, string(b))
 	}
