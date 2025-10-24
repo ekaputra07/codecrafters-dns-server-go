@@ -42,13 +42,11 @@ func main() {
 }
 
 func buildResponse(request []byte) []byte {
-	qname := "codecrafters.io"
-	qtype := uint16(1)
-	qclass := uint16(1)
 	attl := uint32(60)
 	data := "8888"
 
 	header := message.ParseHeader(request[:12])
+	question := message.ParseQuestion(request[12:])
 
 	// RCODE: 0 (no error) if OPCODE is 0 (standard query) else 4 (not implemented)
 	if *header.OPCODE == uint8(0) {
@@ -64,8 +62,13 @@ func buildResponse(request []byte) []byte {
 
 	resp := &message.Message{
 		Header:   header,
-		Question: message.Question{Name: qname, Type: qtype, Class: qclass},
-		Answer:   message.Answer{Name: qname, Type: qtype, Class: qclass, TTL: attl, Data: data},
+		Question: question,
+		Answer: message.Answer{
+			Name:  question.Name,
+			Type:  question.Type,
+			Class: question.Class,
+			TTL:   attl, Data: data,
+		},
 	}
 
 	return resp.ToBytes()

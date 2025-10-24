@@ -2,6 +2,7 @@ package message
 
 import (
 	"encoding/binary"
+	"fmt"
 	"strings"
 )
 
@@ -44,4 +45,44 @@ func (q Question) ToBytes() []byte {
 	bytes = append(bytes, typeBuf...)
 	bytes = append(bytes, classBuf...)
 	return bytes
+}
+
+func ParseQuestion(bytes []byte) Question {
+	var names []string
+	lastStartIndex := 0
+
+	// loop for names
+	for true {
+		b, nextStartIndex := lookupName(bytes, lastStartIndex)
+		if len(b) == 0 {
+			break
+		}
+		fmt.Printf("name=%s, nextI=%v\n", b, nextStartIndex)
+		lastStartIndex = nextStartIndex
+		names = append(names, string(b))
+	}
+
+	// starts from lastStartIndex
+	qtype := binary.BigEndian.Uint16(bytes[lastStartIndex+1:])
+	qclass := binary.BigEndian.Uint16(bytes[lastStartIndex+3:])
+
+	return Question{
+		Name:  strings.Join(names, "."),
+		Type:  qtype,
+		Class: qclass,
+	}
+}
+
+func lookupName(bytes []byte, startIndex int) ([]byte, int) {
+	lengthValue := int(bytes[startIndex])
+
+	// 0 lengthValue found, this might be the delimiter (end of the `name`)
+	// return empty bytes and original startIndex
+	if lengthValue == 0 {
+		return []byte{}, startIndex
+	}
+	ifrom := startIndex + 1 // after the length byte
+	ito := ifrom + lengthValue
+
+	return bytes[ifrom:ito], ito
 }
