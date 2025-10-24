@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	message := message.NewMessage(1234, "codecrafters.io", 1, 1)
+	message := message.NewMessage(1234, "codecrafters.io", 1, 1, 60, "8888")
 
 	udpAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:2053")
 	if err != nil {
