@@ -38,6 +38,7 @@ func main() {
 		if err != nil {
 			fmt.Println("Failed to send response:", err)
 		}
+		fmt.Println("Response sent ---->")
 	}
 }
 
@@ -46,7 +47,19 @@ func buildResponse(request []byte) []byte {
 	data := "8888"
 
 	header := message.ParseHeader(request[:12])
-	question := message.ParseQuestion(request[12:])
+	questions := message.ParseQuestions(*header.QDCOUNT, request[12:])
+
+	var answers []message.Answer
+	for _, q := range questions {
+		answer := message.Answer{
+			Name:  q.Name,
+			Type:  q.Type,
+			Class: q.Class,
+			TTL:   attl,
+			Data:  data,
+		}
+		answers = append(answers, answer)
+	}
 
 	// RCODE: 0 (no error) if OPCODE is 0 (standard query) else 4 (not implemented)
 	if *header.OPCODE == uint8(0) {
@@ -56,19 +69,14 @@ func buildResponse(request []byte) []byte {
 		header.RCODE = &rcode
 	}
 
-	// set qdcount and ancount
-	ancount := uint16(1)
+	// set ancount
+	ancount := uint16(len(answers))
 	header.ANCOUNT = &ancount
 
 	resp := &message.Message{
-		Header:   header,
-		Question: question,
-		Answer: message.Answer{
-			Name:  question.Name,
-			Type:  question.Type,
-			Class: question.Class,
-			TTL:   attl, Data: data,
-		},
+		Header:    header,
+		Questions: questions,
+		Answers:   answers,
 	}
 
 	return resp.ToBytes()

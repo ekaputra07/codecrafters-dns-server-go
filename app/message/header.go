@@ -2,6 +2,7 @@ package message
 
 import (
 	"encoding/binary"
+	"fmt"
 )
 
 // Header format (12 bytes total):
@@ -31,6 +32,23 @@ type Header struct {
 	ANCOUNT *uint16
 	NSCOUNT *uint16
 	ARCOUNT *uint16
+}
+
+func (h Header) String() string {
+	return fmt.Sprintf("ID: %d,\nOPCODE:%d,\nAA: %t,\nTC: %t,\nRD: %t,\nRA: %t,\nZ: %d,\nRCODE: %d,\nQDCOUNT: %d,\nANCOUNT: %d,\nNSCOUNT: %d,\nARCOUNT: %d",
+		h.ID,
+		*h.OPCODE,
+		h.AA,
+		h.TC,
+		h.RD,
+		h.RA,
+		*h.Z,
+		*h.RCODE,
+		*h.QDCOUNT,
+		*h.ANCOUNT,
+		*h.NSCOUNT,
+		*h.ARCOUNT,
+	)
 }
 
 func (h Header) ToBytes() []byte {
