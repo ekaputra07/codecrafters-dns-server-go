@@ -87,8 +87,6 @@ func forwardRequest(request []byte, addr *net.UDPAddr) []byte {
 
 			// append answers from singleResponse to the main response
 			if len(singleResponse) > singleQuestionLength {
-				// h := message.ParseHeader(singleResponse[:12])
-				// header.ID = h.ID // keep original ID
 				answer := singleResponse[singleQuestionLength:]
 				answersBytes = append(answersBytes, answer...)
 			}
@@ -96,8 +94,8 @@ func forwardRequest(request []byte, addr *net.UDPAddr) []byte {
 		// build final response
 		header.Response = true
 		ancount := uint16(len(questions))
-		header.QDCOUNT = &ancount
-		header.ANCOUNT = &ancount
+		header.QDCOUNT = &ancount // set QDCOUNT to number of questions
+		header.ANCOUNT = &ancount // set ANCOUNT to number of answers == number of questions
 		respBytes := message.Message{
 			Header:    header,
 			Questions: questions,
