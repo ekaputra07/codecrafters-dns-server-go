@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -10,25 +9,28 @@ import (
 )
 
 func main() {
+	// check whether we need to forward requests
+	// if yes, get the forwarding address from command line args
+	// Tester will start the server with:
+	// ./your_program.sh --forward <upstream_dns_server_address:port>
 	var forwardAddr *net.UDPAddr
 	if len(os.Args) == 3 {
 		fwdAddr, err := net.ResolveUDPAddr("udp", os.Args[2])
 		if err != nil {
 			log.Println("Failed to resolve upstream DNS server address:", err)
 		}
-		fmt.Println("Upstream address: ", fwdAddr)
 		forwardAddr = fwdAddr
 	}
 
 	udpAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:2053")
 	if err != nil {
-		fmt.Println("Failed to resolve UDP address:", err)
+		log.Println("Failed to resolve UDP address:", err)
 		return
 	}
 
 	udpConn, err := net.ListenUDP("udp", udpAddr)
 	if err != nil {
-		fmt.Println("Failed to bind to address:", err)
+		log.Println("Failed to bind to address:", err)
 		return
 	}
 	defer udpConn.Close()
@@ -38,12 +40,12 @@ func main() {
 	for {
 		size, source, err := udpConn.ReadFromUDP(buf)
 		if err != nil {
-			fmt.Println("Error receiving data:", err)
+			log.Println("Error receiving data:", err)
 			break
 		}
 
 		receivedData := buf[:size]
-		fmt.Printf("Received %d bytes from %s: %s\n", size, source, receivedData)
+		log.Printf("Received %d bytes from %s: %s\n", size, source, receivedData)
 
 		// either forward the request or build a response
 		var response []byte
@@ -56,44 +58,50 @@ func main() {
 		// send response
 		_, err = udpConn.WriteToUDP(response, source)
 		if err != nil {
-			fmt.Println("Failed to send response:", err)
+			log.Println("Failed to send response:", err)
 		}
 	}
 }
 
+// forwardRequest forwards the DNS request to the specified address.
+// If there are multiple questions, it sends each question separately
+// and combines the answers into a single response.
 func forwardRequest(request []byte, addr *net.UDPAddr) []byte {
 	header := message.ParseHeader(request[:12])
 	questions := message.ParseQuestions(*header.QDCOUNT, request[12:])
 
-	if len(questions) == 1 {
+	qlength := len(questions)
+
+	if qlength == 1 {
 		// single question, forward as is
-		fmt.Printf("Forwarding request for question: %+v\n", questions[0])
+		log.Printf("Forwarding request for question: %+v\n", questions[0])
 		return makeForwardRequest(request, addr)
 
-	} else if len(questions) > 1 {
-		fmt.Printf("Forwarding request for multiple questions: %+v\n", questions)
+	} else if qlength > 1 {
+		log.Printf("Forwarding request for multiple questions: %+v\n", questions)
 
 		// send each question separately then combine responses
 		qdcount := uint16(1)
 		header.QDCOUNT = &qdcount
 
+		// collect answers
 		answersBytes := []byte{}
 
 		for _, q := range questions {
-			fmt.Printf("- Forwarding request for question: %+v\n", q)
-			singleQuestionRequest := append(header.ToBytes(), q.ToBytes()...)
-			singleResponse := makeForwardRequest(singleQuestionRequest, addr)
-			singleQuestionLength := len(singleQuestionRequest)
+			log.Printf("- Forwarding request for question: %+v\n", q)
+			req := append(header.ToBytes(), q.ToBytes()...)
+			resp := makeForwardRequest(req, addr)
+			reqLength := len(req)
 
 			// append answers from singleResponse to the main response
-			if len(singleResponse) > singleQuestionLength {
-				answer := singleResponse[singleQuestionLength:]
+			if len(resp) > reqLength {
+				answer := resp[reqLength:]
 				answersBytes = append(answersBytes, answer...)
 			}
 		}
 		// build final response
 		header.Response = true
-		ancount := uint16(len(questions))
+		ancount := uint16(qlength)
 		header.QDCOUNT = &ancount // set QDCOUNT to number of questions
 		header.ANCOUNT = &ancount // set ANCOUNT to number of answers == number of questions
 		respBytes := message.Message{
@@ -103,33 +111,37 @@ func forwardRequest(request []byte, addr *net.UDPAddr) []byte {
 		respBytes = append(respBytes, answersBytes...)
 		return respBytes
 	}
-	fmt.Println("No questions found in the request to forward.")
+	log.Println("No questions found in the request to forward.")
 	return request
 }
 
+// makeForwardRequest send single DNS request to the upstream DNS server
+// and returns the response.
 func makeForwardRequest(request []byte, addr *net.UDPAddr) []byte {
 	conn, err := net.DialUDP("udp", nil, addr)
 	if err != nil {
-		fmt.Println("Failed to dial upstream DNS server:", err)
+		log.Println("Failed to dial upstream DNS server:", err)
 		return nil
 	}
 	defer conn.Close()
 
 	_, err = conn.Write(request)
 	if err != nil {
-		fmt.Println("Failed to send request to upstream DNS server:", err)
+		log.Println("Failed to send request to upstream DNS server:", err)
 		return nil
 	}
 
 	buf := make([]byte, 512)
 	n, err := conn.Read(buf)
 	if err != nil {
-		fmt.Println("Failed to read response from upstream DNS server:", err)
+		log.Println("Failed to read response from upstream DNS server:", err)
 		return nil
 	}
 	return buf[:n]
 }
 
+// buildResponse builds a DNS response for the given request.
+// The resposnse TTL and Data are hardcoded for simplicity.
 func buildResponse(request []byte) []byte {
 	attl := uint32(60)
 	data := "8888"
