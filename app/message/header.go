@@ -20,23 +20,25 @@ import (
 // | ARCOUNT                                     | 2 bytes
 // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 type Header struct {
-	ID      uint16
-	OPCODE  *uint8
-	AA      bool
-	TC      bool
-	RD      bool
-	RA      bool
-	Z       *uint8
-	RCODE   *uint8
-	QDCOUNT *uint16
-	ANCOUNT *uint16
-	NSCOUNT *uint16
-	ARCOUNT *uint16
+	ID       uint16
+	Response bool
+	OPCODE   *uint8
+	AA       bool
+	TC       bool
+	RD       bool
+	RA       bool
+	Z        *uint8
+	RCODE    *uint8
+	QDCOUNT  *uint16
+	ANCOUNT  *uint16
+	NSCOUNT  *uint16
+	ARCOUNT  *uint16
 }
 
 func (h Header) String() string {
-	return fmt.Sprintf("ID: %d,\nOPCODE:%d,\nAA: %t,\nTC: %t,\nRD: %t,\nRA: %t,\nZ: %d,\nRCODE: %d,\nQDCOUNT: %d,\nANCOUNT: %d,\nNSCOUNT: %d,\nARCOUNT: %d",
+	return fmt.Sprintf("ID: %d,\nResponse: %v,\nOPCODE:%d,\nAA: %t,\nTC: %t,\nRD: %t,\nRA: %t,\nZ: %d,\nRCODE: %d,\nQDCOUNT: %d,\nANCOUNT: %d,\nNSCOUNT: %d,\nARCOUNT: %d",
 		h.ID,
+		h.Response,
 		*h.OPCODE,
 		h.AA,
 		h.TC,
@@ -57,9 +59,10 @@ func (h Header) ToBytes() []byte {
 	// set ID
 	binary.BigEndian.PutUint16(bytes, h.ID)
 
-	// QR: type always Response (R)
 	// QR is 1-bit long, the most significant bit of the 3rd byte (index 2)
-	bytes[2] |= 0b10000000
+	if h.Response {
+		bytes[2] |= 0b10000000
+	}
 
 	// OPCODE is 4-bits long, starting from the 2nd bit of the 3rd byte (index 2)
 	if h.OPCODE != nil {
@@ -124,6 +127,9 @@ func (h Header) ToBytes() []byte {
 func ParseHeader(bytes []byte) Header {
 	id := binary.BigEndian.Uint16(bytes)
 
+	// QR is 1-bit long, the most significant bit of the 3rd byte (index 2)
+	response := (bytes[2]&0b10000000)>>7 == 1
+
 	// OPCODE is 4-bits long, starting from the 2nd bit of the 3rd byte (index 2)
 	opcode := uint8((bytes[2] & 0b01111000) >> 3)
 
@@ -158,17 +164,18 @@ func ParseHeader(bytes []byte) Header {
 	arcount := binary.BigEndian.Uint16(bytes[10:])
 
 	return Header{
-		ID:      id,
-		OPCODE:  &opcode,
-		AA:      int(aa) == 1,
-		TC:      int(tc) == 1,
-		RD:      int(rd) == 1,
-		RA:      int(ra) == 1,
-		Z:       &z,
-		RCODE:   &rcode,
-		QDCOUNT: &qdcount,
-		ANCOUNT: &ancount,
-		NSCOUNT: &nscount,
-		ARCOUNT: &arcount,
+		ID:       id,
+		Response: response,
+		OPCODE:   &opcode,
+		AA:       int(aa) == 1,
+		TC:       int(tc) == 1,
+		RD:       int(rd) == 1,
+		RA:       int(ra) == 1,
+		Z:        &z,
+		RCODE:    &rcode,
+		QDCOUNT:  &qdcount,
+		ANCOUNT:  &ancount,
+		NSCOUNT:  &nscount,
+		ARCOUNT:  &arcount,
 	}
 }
